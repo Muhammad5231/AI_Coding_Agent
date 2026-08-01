@@ -7,7 +7,7 @@ Includes streaming support using pure standard HTTP library (requests).
 import json
 import logging
 import requests
-from typing import Generator, Dict, Any
+from typing import Generator, Dict, Any, Tuple
 
 logger = logging.getLogger("LLMClient")
 
