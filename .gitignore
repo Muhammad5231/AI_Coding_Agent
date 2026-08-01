@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Database & Storage
+storage/database/*.db
+storage/logs/*.log
+storage/projects/*
+!storage/projects/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
