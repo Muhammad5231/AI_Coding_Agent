@@ -82,7 +82,7 @@ class LLMClient:
             yield f"\n[LLM Error: Request failed - {str(e)}]"
 
     def _stream_openai(self, prompt: str, system_prompt: str) -> Generator[str, None, None]:
-        """Internal generator for OpenAI-compatible `/v1/chat/completions` endpoint."""
+        """Internal generator for OpenAI-compatible / Groq Cloud streaming endpoint."""
         url = f"{self.api_url}/v1/chat/completions"
         messages = []
         if system_prompt:
@@ -96,6 +96,34 @@ class LLMClient:
             "max_tokens": self.max_tokens,
             "stream": True
         }
+
+        # Headers for Cloud API Authentication
+        headers = {"Content-Type": "application/json"}
+        api_key = self.config.get("api_key", "").strip()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        try:
+            response = requests.post(url, json=payload, headers=headers, stream=True, timeout=self.timeout)
+            response.raise_for_status()
+
+            for line in response.iter_lines():
+                if line:
+                    line_str = line.decode("utf-8").strip()
+                    if line_str.startswith("data: "):
+                        data_content = line_str[6:]
+                        if data_content == "[DONE]":
+                            break
+                        try:
+                            data_json = json.loads(data_content)
+                            delta = data_json["choices"][0]["delta"]
+                            if "content" in delta:
+                                yield delta["content"]
+                        except json.JSONDecodeError:
+                            continue
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Cloud Streaming request error: {e}")
+            yield f"\n[LLM Error: Request failed - {str(e)}]"
 
         try:
             response = requests.post(url, json=payload, stream=True, timeout=self.timeout)
